@@ -1,0 +1,427 @@
+<html>
+<head>
+
+<meta charset="utf-8"> 
+
+<style>
+html, body {
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    margin: 0px;
+    background-color: black;
+}
+
+div.terminal {
+    white-space: pre;
+    font-family: monospace;
+    font-size: 12pt;
+    color: red;
+    cursor: default;
+}
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script>
+function executeCommand(command, callback) {
+    var request = JSON.stringify({command: command + '\n'});
+    $.ajax({
+        type: 'POST',
+        url: '/',
+        dataType: 'json',
+        data: request,
+        success: callback
+    });
+}
+
+function moveCursor(row, column) {
+    var rows = document.querySelectorAll('div.terminal div');
+    if (this.cursorRow != undefined && this.cursorColumn != undefined) {
+        var columns = rows[this.cursorRow].querySelectorAll('span');
+        var cell = columns[this.cursorColumn];
+        var foreground = cell.style.color;
+        var background = cell.style.backgroundColor;
+        cell.style.color = background;
+        cell.style.backgroundColor = foreground;
+        if (cell.dataset.nondisplay) {
+            cell.style.visibility = 'hidden';
+        }
+    }
+    if (row < 0) {
+        row = rows.length + row % rows.length;
+    } else if (row >= rows.length) {
+        row = row % rows.length;
+    }
+    var columns = rows[row].querySelectorAll('span');
+    if (column < 0) {
+        column = columns.length + column % columns.length;
+    } else if (column >= columns.length) {
+        column = column % columns.length;
+    }
+    var cell = columns[column];
+    var foreground = cell.style.color;
+    var background = cell.style.backgroundColor;
+    if (!background) {
+        background = 'black';
+    }
+    cell.style.color = background;
+    cell.style.backgroundColor = foreground;
+    if (cell.dataset.nondisplay) {
+        cell.style.visibility = '';
+    }
+    this.cursorRow = row;
+    this.cursorColumn = column;
+}
+
+function setCharacter(row, column, character) {
+    var rows = document.querySelectorAll('div.terminal div');
+    var columns = rows[row].querySelectorAll('span');
+    var cell = columns[column];
+    if (cell.dataset.protected) {
+        return false;
+    }
+    cell.innerText = character;
+    return true;
+}
+
+$(window).keypress(function(event) {
+    if (event.which === 0) {
+        return;
+    }
+    var character = String.fromCharCode(event.which);
+    if (!character.match(/[ a-zA-Z0-9`~!@#$%^&*()_+\-=[\]{};':",.\/<>?\\|]/)) {
+        return;
+    }
+    var row = this.cursorRow;
+    var column = this.cursorColumn;
+    if (!setCharacter(this.cursorRow, this.cursorColumn, character)) {
+        return;
+    }
+    column++;
+    moveCursor(row, column);
+    executeCommand('String("' + character + '")');
+});
+
+$(window).keydown(function(event) {
+    var row = this.cursorRow;
+    var column = this.cursorColumn;
+    switch (event.keyCode) {
+    case 8: // backspace
+        event.preventDefault();
+        var rows = document.body.querySelectorAll('div.terminal div');
+        var columns = rows[row].querySelectorAll('span');
+        if (columns[column - 1].dataset.fieldStart) {
+            break;
+        }
+        column--;
+        moveCursor(row, column);
+        setCharacter(this.cursorRow, this.cursorColumn, ' ');
+        executeCommand('BackSpace()', function() {
+            executeCommand('Delete()');
+        });
+        break;
+    case 9: // tab
+        event.preventDefault();
+        executeCommand('Tab()', function() {
+            executeCommand('ReadBuffer()', processBuffer);
+        });
+        break;
+    case 13: // enter
+        executeCommand('Enter()', function() {
+            executeCommand('Wait(1000, InputField)', function() {
+                executeCommand('ReadBuffer()', processBuffer);
+            });
+        });
+        break;
+    case 37: // left
+        column--;
+        moveCursor(row, column);
+        executeCommand('Left()');
+        break;
+    case 38: // up
+        row--;
+        moveCursor(row, column);
+        executeCommand('Up()');
+        break;
+    case 39: // right
+        column++;
+        moveCursor(row, column);
+        executeCommand('Right()');
+        break;
+    case 40: // down
+        row++;
+        moveCursor(row, column);
+        executeCommand('Down()');
+        break;
+    case 46: // delete
+        event.preventDefault();
+        executeCommand('Delete()', function() {
+            executeCommand('ReadBuffer()', processBuffer);
+        });
+        break;
+    case 112: // f1
+        event.preventDefault();
+        executeCommand('PF(1)', function() {
+            executeCommand('ReadBuffer()', processBuffer);
+        });
+        break;
+    case 113: // f2
+        event.preventDefault();
+        executeCommand('PF(2)', function() {
+            executeCommand('ReadBuffer()', processBuffer);
+        });
+        break;
+    case 114: // f3
+        event.preventDefault();
+        executeCommand('PF(3)', function() {
+            executeCommand('ReadBuffer()', processBuffer);
+        });
+        break;
+    case 115: // f4
+        event.preventDefault();
+        executeCommand('PF(4)', function() {
+            executeCommand('ReadBuffer()', processBuffer);
+        });
+        break;
+    case 116: // f5
+        event.preventDefault();
+        executeCommand('PF(5)', function() {
+            executeCommand('ReadBuffer()', processBuffer);
+        });
+        break;
+    case 117: // f6
+        event.preventDefault();
+        executeCommand('PF(6)', function() {
+            executeCommand('ReadBuffer()', processBuffer);
+        });
+        break;
+    case 118: // f7
+        event.preventDefault();
+        executeCommand('PF(7)', function() {
+            executeCommand('ReadBuffer()', processBuffer);
+        });
+        break;
+    case 119: // f8
+        event.preventDefault();
+        executeCommand('PF(8)', function(response) {
+            executeCommand('ReadBuffer()', processBuffer);
+        });
+        break;
+    case 120: // f9
+        event.preventDefault();
+        executeCommand('PF(9)', function() {
+            executeCommand('ReadBuffer()', processBuffer);
+        });
+        break;
+    case 121: // f10
+        event.preventDefault();
+        executeCommand('PF(10)', function() {
+            executeCommand('ReadBuffer()', processBuffer);
+        });
+        break;
+    case 122: // f11
+        event.preventDefault();
+        executeCommand('PF(11)', function() {
+            executeCommand('ReadBuffer()', processBuffer);
+        });
+        break;
+    case 123: // f12
+        event.preventDefault();
+        executeCommand('PF(12)', function() {
+            executeCommand('ReadBuffer()', processBuffer);
+        });
+        break;
+    }
+});
+
+function unicode(array) {
+    var result = '';
+    var index = 0;
+    var length = array.length;
+    while (index < length) {
+        var byte = array[index++];
+        switch (byte >> 4) {
+        case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7:
+            result += String.fromCharCode(array[index - 1]);
+            break;
+        case 12: case 13:
+            var left = array[index++];
+            result += String.fromCharCode(((byte & 0x1f) << 6) | (left & 0x3f));
+            break;
+        case 14:
+            var left = array[index++];
+            var right = array[index++];
+            result += String.fromCharCode(((byte & 0x0f) << 12) | ((left & 0x3f) << 6) | ((right & 0x3f) << 0));
+            break;
+        }
+    }
+    return result;
+}
+
+function processBuffer(response) {
+    var status = response.status.split(' ');
+    var row = parseInt(status[8]);
+    var column = parseInt(status[9]);
+    var terminalBlock = document.createElement('div');
+    terminalBlock.className = 'terminal';
+    var field = {};
+    for (var lineIndex = 0; lineIndex < response.data.length; lineIndex++) {
+        var line = response.data[lineIndex];
+        var lineBlock = document.createElement('div');
+        var array = line.split(' ');
+        for (var dataIndex = 0; dataIndex < array.length; dataIndex++) {
+            var data = array[dataIndex];
+            var character = undefined;
+            var attributes = undefined;
+            if (data.length == 2) {
+                var code = parseInt(data, 16);
+                character = code ? String.fromCharCode(parseInt(data, 16)) : ' ';
+            } else {
+                character = ' ';
+                var match = data.match(/S([FA])\((.*?)\)/);
+                if (match) {
+                    attributes = {};
+                    if (match[1] == 'F') {
+                        field = {};
+                    } else if (match[1] == 'A') {
+                        character = undefined;
+                    }
+                    attributes.type = match[1];
+                    match[2].split(',').forEach(function(attribute) {
+                        var pair = attribute.split('=');
+                        attributes[parseInt(pair[0], 16)] = parseInt(pair[1], 16);
+                    });
+                    if (0xc0 in attributes) {
+                        field.protected = Boolean(attributes[0xc0] & 0x20);
+                        field.bright = Boolean(attributes[0xc0] & 0x08);
+                        field.nondisplay = Boolean((attributes[0xc0] & 0x0c) == 0x0c);
+                    }
+                    if (0x41 in attributes) {
+                        if (attributes[0x41] == 0xf0) {
+                            character = undefined;
+                        }
+                        field.reverse = attributes[0x41] == 0xf2;
+                        field.underscore = attributes[0x41] == 0xf4;
+                    }
+                    if (0x42 in attributes) {
+                        var color = undefined;
+                        switch (attributes[0x42]) {
+                        case 0xf0: color = 'deepskyblue'; break;
+                        case 0xf1: color = 'dodgerblue '; break;
+                        case 0xf2: color = 'red'; break;
+                        case 0xf3: color = 'white'; break;
+                        case 0xf4: color = 'lime'; break;
+                        case 0xf5: color = 'turquoise'; break;
+                        case 0xf6: color = 'yellow'; break;
+                        case 0xf7: color = 'white'; break;
+                        case 0xf8: color = 'black'; break;
+                        case 0xf9: color = 'white'; break;
+                        case 0xfa: color = 'white'; break;
+                        case 0xfb: color = 'white'; break;
+                        case 0xfc: color = 'white'; break;
+                        case 0xfd: color = 'white'; break;
+                        case 0xfe: color = 'white'; break;
+                        case 0xff: color = 'white'; break;
+                        }
+                        field.color = color;
+                    }
+                } else {
+                    var code = [];
+                    for (var index = 0; index < data.length; index += 2) {
+                        code.push(parseInt(data.substr(index, 2), 16));
+                    }
+                    character = unicode(code);
+                }
+            }
+            if (character) {
+                var span = document.createElement('span');
+                span.innerHTML = character;
+                if (!field.color) {
+                    if (field.protected === false) {
+                        if (field.bright === false) {
+                            field.color = 'lime';
+                        } else if (field.bright === true) {
+                            field.color = 'red';
+                        }
+                    } else if (field.protected === true) {
+                        if (field.bright === false) {
+                            field.color = 'turquoise';
+                        } else if (field.bright === true) {
+                            field.color = 'white';
+                        }
+                    }
+                }
+                if (!field.color) {
+                    field.color = 'red';
+                }
+                if (!attributes && field.reverse) {
+                    span.style.color = 'black';
+                    span.style.backgroundColor = field.color;
+                } else {
+                    span.style.color = field.color;
+                }
+                if (field.protected) {
+                    span.dataset.protected = true;
+                }
+                if (field.nondisplay) {
+                    span.dataset.nondisplay = true;
+                    span.style.visibility = 'hidden';
+                }
+                if (!attributes && field.underscore) {
+                    span.style.boxShadow = 'inset 0 -1px 0 0';
+                    span.style.mozBoxShadow = span.style.boxShadow;
+                    span.style.webkitBoxShadow = span.style.boxShadow;
+                }
+                if (attributes && attributes.type == 'F') {
+                    span.dataset.fieldStart = true;
+                }
+                lineBlock.appendChild(span);
+            }
+        }
+        terminalBlock.appendChild(lineBlock);
+    }
+    terminalBlock.onclick = function(event) {
+        var cell = event.target;
+        var column = 0;
+        var node = cell;
+        while (node = node.previousSibling) {
+            column++;
+        }
+        var row = 0;
+        node = cell.parentNode;
+        while (node = node.previousSibling) {
+            row++;
+        }
+        moveCursor(row, column);
+        executeCommand('MoveCursor(' + row + ',' + column + ')');
+    };
+    if (!document.body.childNodes.length) {
+        document.body.appendChild(terminalBlock);
+    } else {
+        document.body.replaceChild(terminalBlock, document.body.childNodes[0]);
+    }
+    cursorRow = undefined;
+    cursorColumn = undefined;
+    moveCursor(row, column);
+}
+
+$(document).ready(function() {
+    executeCommand('', function(response) {
+        if (response.status.split(' ')[3] == 'N') {
+            var hostname = prompt('Host name', 'RS22');
+            executeCommand('Connect("' + hostname + '")', function(response) {
+                executeCommand('ReadBuffer()', processBuffer);
+            });
+        } else {
+            executeCommand('ReadBuffer()', processBuffer);
+        }
+    });
+});
+</script>
+
+</head>
+<body>
+</body>
+</html>
