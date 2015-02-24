@@ -12,5 +12,6 @@ optional arguments:
                         server address
   -p PORT, --port PORT  server port
 ```
+Then open http://[INTERFACE]:[PORT] in your web browser.
 
 [s3270]:http://x3270.bgp.nu/Unix/s3270-man.html
