@@ -410,7 +410,7 @@ function processBuffer(response) {
 $(document).ready(function() {
     executeCommand('', function(response) {
         if (response.status.split(' ')[3] == 'N') {
-            var hostname = prompt('Host name', 'RS22');
+            var hostname = prompt('Host name');
             executeCommand('Connect("' + hostname + '")', function(response) {
                 executeCommand('ReadBuffer()', processBuffer);
             });
